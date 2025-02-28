@@ -7,7 +7,7 @@
 ## วิธีการใช้งาน
 ท่านจะต้องติดตั้ง node.js ในเครื่องก่อน
 
-จะมี Database ให้อยู่ที่ folder DatabasePorject/todo_db.sql ซึ่งจะเป็น MySQL เอาไว้ใช้ Import
+จะมี Database ให้เอาไว้ใช้ Import อยู่ที่ folder DatabasePorject/todo_db.sql ซึ่งจะเป็น MySQL 
 
 เมือท่านได้ Import Database เรียบร้อยแล้วสามารถสามารถเปลี่ยน confing ให้ตรงกับ Database ที่เราติดตั้งได้ที่ Confing/db.js
 หลังจากนั้นให้ท่าน run Terminal ด้วยคำสั่ง 
