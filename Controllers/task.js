@@ -3,7 +3,7 @@ const { connectDB } = require('../Confing/db');
 exports.getOverView = async (req, res) => {
     try {
         // ติดต่อฐานข้อมูล
-        const conn = await connectDB(); // Create a connection
+        const conn = await connectDB();
         // สำสั่ง SELECT ข้อมูล tasks
         let sql = `SELECT 
             task_id, 
@@ -15,10 +15,7 @@ exports.getOverView = async (req, res) => {
             CONVERT_TZ(due_date, '+00:00', '+07:00') AS due_date
             FROM tasks`;
 
-        // let sql = 'SELECT * FROM tasks'; // Base query
-        // ประการตัวแปล params
         let params = [];
-        // ประการตัวแปล conditions
         let conditions = [];
 
         //ตรวจสอบว่า req มี user_id ส่งมาไหมถ้าส่งมาให้ push เข้า conditions และ params
@@ -56,17 +53,42 @@ exports.getOverView = async (req, res) => {
             sql += ' WHERE ' + conditions.join(' AND ');
         }
 
-        //query
+        const page = parseInt(req.body.page) || 1;  // Default page = 1
+        const limit = parseInt(req.body.limit) || 10; // Default limit = 10
+        const offset = (page - 1) * limit; // Calculate offset
+
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+
         const [results] = await conn.query(sql, params);
-        // ส่งให้มูลกลับ
-        res.json(results);
+
+        const countQuery = `SELECT COUNT(*) as total FROM tasks ${conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''}`;
+        const [countResult] = await conn.query(countQuery, params.slice(0, -2)); // Exclude limit & offset from count query
+
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
+        // ส่งให้มูลกลับ
+        res.status(200).json({
+            status: "200",
+            message: "Data retrieved successfully",
+            result: {
+                total: countResult[0].total,
+                page,
+                limit,
+                totalPages: Math.ceil(countResult[0].total / limit),
+                data: results,
+            }
+        });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
+
 
 exports.getByid = async (req, res) => {
     try {
@@ -75,7 +97,10 @@ exports.getByid = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!id || isNaN(id) || id <= 0) {
-            return res.status(400).json({ error: 'Invalid ID provided' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid ID provided'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -110,7 +135,10 @@ exports.getByid = async (req, res) => {
 
         // เช็กว่ามีข้อมูลที่ select มาไหม
         if (results.length === 0) {
-            return res.status(404).json({ error: 'Task not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'Task not found'
+            });
         }
 
         // set ข้อมูล task
@@ -142,10 +170,18 @@ exports.getByid = async (req, res) => {
         });
 
         // ส่งให้มูลกลับ
-        res.json(task);
+        res.status(200).json({
+            status: "200",
+            message: "Data retrieved successfully",
+            result: task
+        });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -156,7 +192,10 @@ exports.createTask = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!user_id || !title || !description || !status || !priority || !due_date) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -171,29 +210,39 @@ exports.createTask = async (req, res) => {
         const [task] = await conn.query('SELECT * FROM tasks WHERE task_id = ?', [result.insertId]);
         // ถ้าข้อมูลที่เพิ่ม insert ไม่เจอให้ retrurn 500
         if (!task || task.length === 0) {
-            return res.status(500).json({ error: 'Task retrieval failed' });
+            return res.status(500).json({
+                status: "500",
+                message: 'Task retrieval failed'
+            });
         }
-
-        // ส่งให้มูลกลับ
-        res.status(201).json({
-            message: 'Task added successfully',
-            task_id: task[0].task_id,
-            user_id: task[0].user_id,
-            title: task[0].title,
-            description: task[0].description,
-            status: task[0].status,
-            priority: task[0].priority,
-            due_date: task[0].due_date,
-            created_at: task[0].created_at,
-            updated_at: task[0].updated_at
-        });
 
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
+        // ส่งให้มูลกลับ
+        res.status(201).json({
+            status: "201",
+            message: 'Task added successfully',
+            result: {
+                task_id: task[0].task_id,
+                user_id: task[0].user_id,
+                title: task[0].title,
+                description: task[0].description,
+                status: task[0].status,
+                priority: task[0].priority,
+                due_date: task[0].due_date,
+                created_at: task[0].created_at,
+                updated_at: task[0].updated_at
+            }
+        });
+
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -206,7 +255,10 @@ exports.updateTask = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!title || !description || !status || !priority || !due_date) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -228,14 +280,18 @@ exports.updateTask = async (req, res) => {
 
         // ถ้าไม่มีการ update ให้ return ว่าหา Task นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'task not found' });
+            return res.status(404).json({
+                status: "400",
+                message: 'task not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
+        res.status(200).json({
+            status: "200",
             message: 'Task updated successfully',
-            task_id: id,
-            updated_task: {
+            result: {
+                task_id: id,
                 title,
                 description,
                 status,
@@ -246,7 +302,11 @@ exports.updateTask = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -257,7 +317,10 @@ exports.deleteTask = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!id || isNaN(id) || id <= 0) {
-            return res.status(400).json({ error: 'Invalid Task ID provided' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid Task ID provided'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -272,18 +335,26 @@ exports.deleteTask = async (req, res) => {
 
         // ถ้าไม่มีการบลขอมูลให้ return ว่าหา task นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Task not found' });
+            // return res.status(404).json({ error: 'Task not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'Task not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
-            message: 'Task deleted successfully',
-            task_id: id
+        res.status(200).json({
+            status: "200",
+            message: 'Task deleted successfully'
         });
 
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 

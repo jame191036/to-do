@@ -4,43 +4,65 @@ const jwt = require('jsonwebtoken');
 
 exports.getOverView = async (req, res) => {
     try {
+        const { page = 1, limit = 10, username, email } = req.body;
+        const offset = (page - 1) * limit;
+
         // ติดต่อฐานข้อมูล
         const conn = await connectDB();
-        // สำสั่ง SELECT ข้อมูล tasks
-        let sql = `SELECT 
-                    user_id, 
-                    username, 
-                    email
-                    FROM users`;
 
-        // let sql = 'SELECT * FROM users'; // Base query
-        // ประการตัวแปล params
         let params = [];
+        let conditions = [];
 
         //ตรวจสอบว่า req มี username ส่งมาไหมถ้าส่งมาให้ push เข้า params
-        if (req.body.username) {
-            sql += params.length ? ' AND' : ' WHERE';
-            sql += ' username = ?';
-            params.push(req.body.username);
+        if (username) {
+            conditions.push('username = ?');
+            params.push(username);
         }
 
         //ตรวจสอบว่า req มี email ส่งมาไหมถ้าส่งมาให้ push เข้า params
-        if (req.body.email) {
-            sql += params.length ? ' AND' : ' WHERE';
-            sql += ' email = ?';
-            params.push(req.body.email);
+        if (email) {
+            conditions.push('email = ?');
+            params.push(email);
         }
 
-        //query
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // สำสั่ง SELECT ข้อมูล tasks
+        const sql = `
+          SELECT user_id, username, email 
+          FROM users 
+          ${whereClause} 
+          LIMIT ? OFFSET ?`;
+        params.push(parseInt(limit), parseInt(offset));
+
         const [results] = await conn.query(sql, params);
-        // ส่งให้มูลกลับ
-        res.json(results);
+
+        // Count total records for pagination
+        const countSql = `SELECT COUNT(*) as total FROM users ${whereClause}`;
+        const [countResult] = await conn.query(countSql, params.slice(0, -2)); // Exclude limit & offset from count query
 
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
+
+        // ส่งให้มูลกลับ
+        res.json({
+            status: "200",
+            message: "Data retrieved successfully",
+            result: {
+                total: countResult[0].total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(countResult[0].total / limit),
+                data: results,
+            }
+        });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -51,7 +73,10 @@ exports.getById = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!id || isNaN(id) || id <= 0) {
-            return res.status(400).json({ error: 'Invalid ID provided' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid ID provided'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -73,14 +98,25 @@ exports.getById = async (req, res) => {
 
         // เช็กว่ามีข้อมูลที่ select มาไหม
         if (results.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'User not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json(results[0]);
+        res.status(200).json({
+            status: "200",
+            message: "Data retrieved successfully",
+            result: results[0]
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -91,15 +127,19 @@ exports.createUser = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!username || !email || !password) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // เช็กรูปแบบ email ว่าถูกต้องไหม
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(email)) {
             return res.status(400).json({
+                status: "400",
                 message: 'Invalid email format'
-            })
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -113,7 +153,10 @@ exports.createUser = async (req, res) => {
 
         // ถ้ามีแล้วให้แจ้งว่ามีผู้ใช่งาน user หรือ email นี้แล้ว
         if (existingUser.length > 0) {
-            return res.status(400).json({ error: 'Username or email already exists' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Username or email already exists'
+            });
         }
 
         // เข้ารหัสรหัสผ่าน
@@ -128,25 +171,34 @@ exports.createUser = async (req, res) => {
         const [user] = await conn.query('SELECT * FROM users WHERE user_id = ?', [result.insertId]);
         // ถ้าข้อมูลที่เพิ่ม insert ไม่เจอให้ retrurn 500
         if (!user || user.length === 0) {
-            return res.status(500).json({ error: 'User retrieval failed' });
+            return res.status(500).json({
+                status: "500",
+                message: 'User retrieval failed'
+            });
         }
-
-        // ส่งให้มูลกลับ
-        res.status(201).json({
-            message: 'user added successfully',
-            user_id: user[0].user_id,
-            username: user[0].username,
-            email: user[0].email,
-            created_at: user[0].created_at,
-            updated_at: user[0].updated_at
-        });
 
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
+        // ส่งให้มูลกลับ
+        res.status(201).json({
+            status: "201",
+            message: 'user added successfully',
+            result: {
+                user_id: user[0].user_id,
+                username: user[0].username,
+                email: user[0].email,
+                created_at: user[0].created_at,
+                updated_at: user[0].updated_at
+            }
+        });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -159,15 +211,19 @@ exports.updateUser = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!username || !email) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // เช็กรูปแบบ email ว่าถูกต้องไหม
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({
+                status: "400",
                 message: 'Invalid email format'
-            })
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -181,7 +237,10 @@ exports.updateUser = async (req, res) => {
 
         // ถ้ามีแล้วให้แจ้งว่ามีผู้ใช่งาน user หรือ email นี้แล้ว
         if (existingUser.length > 0) {
-            return res.status(400).json({ error: 'Username or email already exists' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Username or email already exists'
+            });
         }
 
         // สำสั่ง UPDATE ข้อมูล users
@@ -202,21 +261,29 @@ exports.updateUser = async (req, res) => {
 
         // ถ้าไม่มีการ update ให้ return ว่าหา user นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'user not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'user not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
+        res.status(200).json({
+            status: "200",
             message: 'User updated successfully',
-            user_id: id,
-            updated_user: {
+            result: {
+                user_id: id,
                 username,
                 email
             }
         });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -229,7 +296,10 @@ exports.changePassword = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!current_password || !new_password) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -240,7 +310,10 @@ exports.changePassword = async (req, res) => {
 
         // เช็กว่าเจอข้อมูลหรือไม่
         if (!user || user.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'User not found'
+            });
         }
 
         // เช็กรหัสผ่านเดิมที่กรอกเข้ามาว่าถูกต้องไหม
@@ -248,7 +321,10 @@ exports.changePassword = async (req, res) => {
 
         // ถ้ากรอกรหัสผ่านเดิมไม่ถูกต้องให้ return 400
         if (!isMatch) {
-            return res.status(400).json({ error: 'Current password is incorrect' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Current password is incorrect'
+            });
         }
 
         // เข้ารหัสรหัสผ่าน
@@ -259,13 +335,19 @@ exports.changePassword = async (req, res) => {
         await conn.query('UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?', [hashedPassword, id]);
 
         //ส่งข้อมูลกลับ
-        res.status(200).json({ message: 'Password changed successfully' });
-        
+        res.status(200).json({
+            status: "200",
+            message: "Password changed successfully",
+        });
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -276,7 +358,10 @@ exports.deleteUser = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!id || isNaN(id) || id <= 0) {
-            return res.status(400).json({ error: 'Invalid User ID provided' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid User ID provided'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -291,18 +376,24 @@ exports.deleteUser = async (req, res) => {
 
         // ถ้าไม่มีการบลขอมูลให้ return ว่าหา User นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'User not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
-            message: 'User deleted successfully',
-            task_id: id
+        res.status(200).json({
+            status: "200",
+            message: 'User deleted successfully'
         });
-
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 

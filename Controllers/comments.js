@@ -8,7 +8,10 @@ exports.createComment = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!task_id || !user_id || !comment) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required fields'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -22,7 +25,10 @@ exports.createComment = async (req, res) => {
 
         // ถ้าข้อมูลที่เพิ่ม insert ไม่เจอให้ retrurn 500
         if (!commentData || commentData.length === 0) {
-            return res.status(500).json({ error: 'commentData retrieval failed' });
+            return res.status(500).json({
+                status: "500",
+                message: 'commentData retrieval failed'
+            });
         }
 
         // ปิดการติดต่อฐานข้อมูล
@@ -30,17 +36,24 @@ exports.createComment = async (req, res) => {
 
         // ส่งให้มูลกลับ
         res.status(201).json({
+            status: "201",
             message: 'Comment added successfully',
-            comment_id: commentData[0].comment_id,
-            task_id: commentData[0].task_id,
-            user_id: commentData[0].user_id,
-            comment: commentData[0].comment,
-            created_at: commentData[0].created_at,
-            updated_at: commentData[0].updated_at
+            result: {
+                comment_id: commentData[0].comment_id,
+                task_id: commentData[0].task_id,
+                user_id: commentData[0].user_id,
+                comment: commentData[0].comment,
+                created_at: commentData[0].created_at,
+                updated_at: commentData[0].updated_at
+            }
         });
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
@@ -53,17 +66,26 @@ exports.editComment = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!comment) {
-            return res.status(400).json({ error: 'Missing required field: comment' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Missing required field: comment'
+            });
         }
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (isNaN(user_id)) {
-            return res.status(400).json({ error: 'Invalid user_id' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid user_id'
+            });
         }
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (isNaN(task_id)) {
-            return res.status(400).json({ error: 'Invalid task_id' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid task_id'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -78,7 +100,10 @@ exports.editComment = async (req, res) => {
 
         // ถ้า query ไม่เจอให้ retrurn 500 เพราะต้องเป็น comment ของ user ที่สร้างเอง
         if (!commentData[0] || commentData[0].length === 0) {
-            return res.status(500).json({ error: 'Unable to update comment' });
+            return res.status(500).json({
+                status: "500",
+                message: 'Unable to update comment'
+            });
         }
 
         //query หา user
@@ -87,7 +112,7 @@ exports.editComment = async (req, res) => {
         if (userData[0]) {
             const subject_msg = await 'Comment มีการอัพเดท';
             const text_msg = await 'มีการอัพเดท comment จาก ' + commentData[0].comment + ' เป็น ' + comment;
-            
+
             // ส่ง email ไปแจ้งเตือนการ update comment
             await sendEmail(userData[0].email, subject_msg, text_msg);
         }
@@ -114,19 +139,22 @@ exports.editComment = async (req, res) => {
 
         // ถ้าไม่มีการ update ให้ return ว่าหา comment นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Comment not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'Comment not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
+        res.status(200).json({
+            status: "200",
             message: 'Comment updated successfully',
-            comment_id: id,
-            updated_comment: {
+            result: {
+                comment_id: id,
                 user_id: user_id || null,
                 comment
             }
         });
-
     } catch (error) {
         console.log(error);
         res.status(500).send('Server Error');
@@ -140,7 +168,10 @@ exports.deleteComment = async (req, res) => {
 
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!id || isNaN(id) || id <= 0) {
-            return res.status(400).json({ error: 'Invalid comment ID provided' });
+            return res.status(400).json({
+                status: "400",
+                message: 'Invalid comment ID provided'
+            });
         }
 
         // ติดต่อฐานข้อมูล
@@ -155,18 +186,24 @@ exports.deleteComment = async (req, res) => {
 
         // ถ้าไม่มีการบลขอมูลให้ return ว่าหา comment นี้ไม่เจอ
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Comment not found' });
+            return res.status(404).json({
+                status: "404",
+                message: 'Comment not found'
+            });
         }
 
         // ส่งให้มูลกลับ
-        res.json({
-            message: 'Comment deleted successfully',
-            comment_id: id
+        res.status(200).json({
+            status: "200",
+            message: 'Comment deleted successfully'
         });
-
     } catch (error) {
         console.log(error);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: "500",
+            message: "Server Error",
+            result: null
+        });
     }
 };
 
