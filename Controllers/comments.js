@@ -1,4 +1,5 @@
 const { connectDB } = require('../Confing/db');
+const sendEmail = require("./sendEmail");
 
 exports.createComment = async (req, res) => {
     try {
@@ -49,7 +50,7 @@ exports.editComment = async (req, res) => {
         const { id } = req.params;
         // รับข้อมูลจาก request
         const { user_id, task_id, comment } = req.body;
-        
+
         // ตรวจสอบว่าได้รับข้อมูลครบที่ต้องการครบไหม
         if (!comment) {
             return res.status(400).json({ error: 'Missing required field: comment' });
@@ -73,11 +74,22 @@ exports.editComment = async (req, res) => {
         // set param
         let paramsSelectComment = [id, task_id, user_id];
         //query
-        const commentData = await conn.query(sqlSelect, paramsSelectComment);
+        const [commentData] = await conn.query(sqlSelect, paramsSelectComment);
 
         // ถ้า query ไม่เจอให้ retrurn 500 เพราะต้องเป็น comment ของ user ที่สร้างเอง
         if (!commentData[0] || commentData[0].length === 0) {
             return res.status(500).json({ error: 'Unable to update comment' });
+        }
+
+        //query หา user
+        const [userData] = await conn.query('SELECT * FROM users u WHERE user_id = ?', user_id);
+
+        if (userData[0]) {
+            const subject_msg = await 'Comment มีการอัพเดท';
+            const text_msg = await 'มีการอัพเดท comment จาก ' + commentData[0].comment + ' เป็น ' + comment;
+            
+            // ส่ง email ไปแจ้งเตือนการ update comment
+            await sendEmail(userData[0].email, subject_msg, text_msg);
         }
 
         // สำสั่ง UPDATE ข้อมูล comment
