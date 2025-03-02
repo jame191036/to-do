@@ -39,7 +39,7 @@ exports.login = async (req, res) => {
             { user_id: user.user_id, username: user.username }, 'jwtsecret', { expiresIn: '1h' } 
         );
 
-        // ส่งให้มูลกลับพร้อม token
+        // ส่งข้อมูลกลับพร้อม token
         res.status(200).json({
             message: 'Login successful',
             token,

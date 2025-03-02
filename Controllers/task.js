@@ -1,4 +1,5 @@
 const { connectDB } = require('../Confing/db');
+const sendEmail = require("./sendEmail");
 
 exports.getOverView = async (req, res) => {
     try {
@@ -67,7 +68,7 @@ exports.getOverView = async (req, res) => {
 
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: "Data retrieved successfully",
@@ -169,7 +170,7 @@ exports.getByid = async (req, res) => {
             }
         });
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: "Data retrieved successfully",
@@ -219,7 +220,7 @@ exports.createTask = async (req, res) => {
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(201).json({
             status: "201",
             message: 'Task added successfully',
@@ -263,6 +264,19 @@ exports.updateTask = async (req, res) => {
 
         // ติดต่อฐานข้อมูล
         const conn = await connectDB();
+
+        let sqltaskData = `SELECT
+                        t.title, 
+                        t.description,
+                        t.status,
+                        t.priority,
+                        t.due_date,
+                        u.email
+                        FROM tasks t
+                        LEFT JOIN users u ON t.user_id = u.user_id
+                        WHERE t.task_id = ?`;
+        const [taskData] = await conn.query(sqltaskData, id);
+
         // สำสั่ง UPDATE ข้อมูล tasks
         let sql = 'UPDATE tasks SET title = ?, description = ?, status = ?, priority = ?, due_date = ?, updated_at = NOW()';
         // set param
@@ -286,7 +300,58 @@ exports.updateTask = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+
+        //query หา user
+        console.log(taskData[0]);
+        console.log(title);
+
+        // const [userData] = await conn.query('SELECT * FROM users u WHERE u.user_id = ?', taskData[0].user_id);
+
+        if (taskData[0]) {
+            const subject_msg = 'Task มีการอัพเดท';
+
+            const html_msg = `
+                <p>มีการอัพเดท Task</p>
+                <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+                    <tr>
+                        <th style="background-color: #f2f2f2;">Field</th>
+                        <th style="background-color: #f2f2f2;">Old Value</th>
+                        <th style="background-color: #f2f2f2;">New Value</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Title</strong></td>
+                        <td>${taskData[0].title}</td>
+                        <td>${title}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Description</strong></td>
+                        <td>${taskData[0].description}</td>
+                        <td>${description}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status</strong></td>
+                        <td>${taskData[0].status}</td>
+                        <td>${status}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Priority</strong></td>
+                        <td>${taskData[0].priority}</td>
+                        <td>${priority}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Due Date</strong></td>
+                        <td>${taskData[0].due_date}</td>
+                        <td>${due_date}</td>
+                    </tr>
+                </table>
+                <br>
+                <p>กรุณาตรวจสอบการอัพเดทข้อมูล</p>`;
+
+            // ส่ง email ไปแจ้งเตือนการ update task
+            sendEmail(taskData[0].email, subject_msg, html_msg);
+        }
+
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'Task updated successfully',
@@ -342,7 +407,7 @@ exports.deleteTask = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'Task deleted successfully'

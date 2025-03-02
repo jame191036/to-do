@@ -1,6 +1,6 @@
 var nodemailer = require('nodemailer');
 
-const sendEmail = async (send_email, subject_msg, text_msg) => {
+const sendEmail = async (send_email, subject_msg, html_msg) => {
     try {
         console.log('send_email', send_email);
         
@@ -21,7 +21,8 @@ const sendEmail = async (send_email, subject_msg, text_msg) => {
             from: "piyawat2163@gmail.com",
             to: send_email,
             subject: subject_msg,
-            text: text_msg,
+            // text: text_msg,
+            html: html_msg,
         };
 
         let info = await transporter.sendMail(mailOptions);

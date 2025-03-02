@@ -44,7 +44,7 @@ exports.getOverView = async (req, res) => {
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.json({
             status: "200",
             message: "Data retrieved successfully",
@@ -104,7 +104,7 @@ exports.getById = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: "Data retrieved successfully",
@@ -180,7 +180,7 @@ exports.createUser = async (req, res) => {
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(201).json({
             status: "201",
             message: 'user added successfully',
@@ -267,7 +267,7 @@ exports.updateUser = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'User updated successfully',
@@ -382,7 +382,7 @@ exports.deleteUser = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'User deleted successfully'

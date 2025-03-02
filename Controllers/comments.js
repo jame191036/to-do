@@ -18,10 +18,25 @@ exports.createComment = async (req, res) => {
         const conn = await connectDB();
         // สำสั่ง insert ข้อมูล comment
         let sql = 'INSERT INTO comments (task_id, user_id, comment) VALUES (?, ?, ?)';
-        //query
+
         const [result] = await conn.query(sql, [task_id, user_id, comment]);
+
+        let sqltaskData = `SELECT
+                        c.comment_id,
+                        c.task_id,
+                        c.user_id,
+                        c.comment,
+                        c.created_at,
+                        c.updated_at,
+                        t.title,
+                        u.email
+                        FROM comments c
+                        LEFT JOIN tasks t ON c.task_id = t.task_id
+                        LEFT JOIN users u ON t.user_id = u.user_id  
+                        WHERE c.comment_id = ?`;
+
         //query ขอมูลที่เพิ่ง insert ไปเพื่อนำข้อมูลไป res
-        const [commentData] = await conn.query('SELECT * FROM comments WHERE comment_id = ?', [result.insertId]);
+        const [commentData] = await conn.query(sqltaskData, [result.insertId]);
 
         // ถ้าข้อมูลที่เพิ่ม insert ไม่เจอให้ retrurn 500
         if (!commentData || commentData.length === 0) {
@@ -34,7 +49,18 @@ exports.createComment = async (req, res) => {
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
 
-        // ส่งให้มูลกลับ
+        //ส่ง email
+        if (commentData[0]) {
+            const subject_msg = `Task ${commentData[0].title} มี Comment ใหม่`;
+            const html_msg = `<p><strong>Comment Update:</strong></p>
+                            <blockquote style="background-color: #f2f2f2; padding: 10px; border-left: 5px solid #28a745;">
+                                ${commentData[0].comment}
+                            </blockquote>`;
+
+            sendEmail(commentData[0].email, subject_msg, html_msg);
+        }
+
+        // ส่งข้อมูลกลับ
         res.status(201).json({
             status: "201",
             message: 'Comment added successfully',
@@ -107,14 +133,23 @@ exports.editComment = async (req, res) => {
         }
 
         //query หา user
-        const [userData] = await conn.query('SELECT * FROM users u WHERE user_id = ?', user_id);
+        const [userData] = await conn.query('SELECT * FROM users WHERE user_id = ?', user_id);
 
+        //ส่ง email
         if (userData[0]) {
             const subject_msg = await 'Comment มีการอัพเดท';
-            const text_msg = await 'มีการอัพเดท comment จาก ' + commentData[0].comment + ' เป็น ' + comment;
-
+            const html_msg = `
+                            <p>มีการอัพเดท <strong>Comment</strong> จาก:</p>
+                            <blockquote style="background-color: #f2f2f2; padding: 10px; border-left: 5px solid #007bff;">
+                                ${commentData[0].comment}
+                            </blockquote>
+                            <p>เป็น:</p>
+                            <blockquote style="background-color: #d4edda; padding: 10px; border-left: 5px solid #28a745;">
+                                ${comment}
+                            </blockquote>
+                            <p>กรุณาตรวจสอบการอัพเดทข้อมูล</p>`;
             // ส่ง email ไปแจ้งเตือนการ update comment
-            await sendEmail(userData[0].email, subject_msg, text_msg);
+            sendEmail(userData[0].email, subject_msg, html_msg);
         }
 
         // สำสั่ง UPDATE ข้อมูล comment
@@ -145,7 +180,7 @@ exports.editComment = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'Comment updated successfully',
@@ -192,7 +227,7 @@ exports.deleteComment = async (req, res) => {
             });
         }
 
-        // ส่งให้มูลกลับ
+        // ส่งข้อมูลกลับ
         res.status(200).json({
             status: "200",
             message: 'Comment deleted successfully'
