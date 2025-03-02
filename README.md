@@ -9,7 +9,7 @@
 
 จะมี Database เอาไว้ใช้ Import อยู่ที่ folder DatabasePorject/todo_db.sql ซึ่งจะเป็น Database ของ MySQL 
 
-เมือท่านได้ Import Database เรียบร้อยแล้วสามารถสามารถเปลี่ยน confing ให้ตรงกับ Database ที่เราติดตั้งได้ที่ Confing/db.js
+เมื่อท่านได้ Import Database เรียบร้อยแล้วสามารถสามารถเปลี่ยน confing ให้ตรงกับ Database ที่ท่านติดตั้งได้ที่ Confing/db.js
 หลังจากนั้นให้ท่าน run Terminal ด้วยคำสั่ง 
 
     node server.js
