@@ -21,6 +21,7 @@ exports.createComment = async (req, res) => {
 
         const [result] = await conn.query(sql, [task_id, user_id, comment]);
 
+        // สำสั่ง select เพื่อนำข้อมูลไปส่งกลับและ ส่ง Email แจ้งเตือน 
         let sqltaskData = `SELECT
                         c.comment_id,
                         c.task_id,
@@ -35,7 +36,6 @@ exports.createComment = async (req, res) => {
                         LEFT JOIN users u ON t.user_id = u.user_id  
                         WHERE c.comment_id = ?`;
 
-        //query ขอมูลที่เพิ่ง insert ไปเพื่อนำข้อมูลไป res
         const [commentData] = await conn.query(sqltaskData, [result.insertId]);
 
         // ถ้าข้อมูลที่เพิ่ม insert ไม่เจอให้ retrurn 500

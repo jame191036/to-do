@@ -2,8 +2,6 @@ var nodemailer = require('nodemailer');
 
 const sendEmail = async (send_email, subject_msg, html_msg) => {
     try {
-        console.log('send_email', send_email);
-        
         if (!send_email) {
             console.log("Recipient email is required");
             return;

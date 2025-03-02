@@ -1,6 +1,9 @@
 const { connectDB } = require('../Confing/db');
 const sendEmail = require("./sendEmail");
 
+const validStatuses = ['pending', 'in_progress', 'completed'];
+const validPriorities = ['low', 'medium', 'high'];
+
 exports.getOverView = async (req, res) => {
     try {
         // ติดต่อฐานข้อมูล
@@ -199,6 +202,20 @@ exports.createTask = async (req, res) => {
             });
         }
 
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                status: "400",
+                message: "Invalid status. Allowed values: 'pending', 'in_progress', 'completed'"
+            });
+        }
+
+        if (!validPriorities.includes(priority)) {
+            return res.status(400).json({
+                status: "400",
+                message: "Invalid priority. Allowed values: 'low', 'medium', 'high'"
+            });
+        }
+
         // ติดต่อฐานข้อมูล
         const conn = await connectDB();
 
@@ -262,15 +279,30 @@ exports.updateTask = async (req, res) => {
             });
         }
 
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                status: "400",
+                message: "Invalid status. Allowed values: 'pending', 'in_progress', 'completed'"
+            });
+        }
+
+        if (!validPriorities.includes(priority)) {
+            return res.status(400).json({
+                status: "400",
+                message: "Invalid priority. Allowed values: 'low', 'medium', 'high'"
+            });
+        }
+
         // ติดต่อฐานข้อมูล
         const conn = await connectDB();
 
+        // สำสั่ง select เพื่อนำข้อมูลส่ง Email แจ้งเตือน 
         let sqltaskData = `SELECT
                         t.title, 
                         t.description,
                         t.status,
                         t.priority,
-                        t.due_date,
+                        CONVERT_TZ(t.due_date, '+00:00', '+07:00') AS due_date,
                         u.email
                         FROM tasks t
                         LEFT JOIN users u ON t.user_id = u.user_id
@@ -300,16 +332,12 @@ exports.updateTask = async (req, res) => {
             });
         }
 
-
-        //query หา user
-        console.log(taskData[0]);
-        console.log(title);
-
-        // const [userData] = await conn.query('SELECT * FROM users u WHERE u.user_id = ?', taskData[0].user_id);
-
+        // ส่ง Email
         if (taskData[0]) {
-            const subject_msg = 'Task มีการอัพเดท';
+            const formattedDateDueDate = new Date(taskData[0].due_date).toLocaleDateString('en-GB');
+            const formattedDateDueDateUpdate = new Date(due_date).toLocaleDateString('en-GB');
 
+            const subject_msg = 'Task มีการอัพเดท';
             const html_msg = `
                 <p>มีการอัพเดท Task</p>
                 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
@@ -340,8 +368,8 @@ exports.updateTask = async (req, res) => {
                     </tr>
                     <tr>
                         <td><strong>Due Date</strong></td>
-                        <td>${taskData[0].due_date}</td>
-                        <td>${due_date}</td>
+                        <td>${formattedDateDueDate}</td>
+                        <td>${formattedDateDueDateUpdate}</td>
                     </tr>
                 </table>
                 <br>
@@ -364,7 +392,6 @@ exports.updateTask = async (req, res) => {
                 due_date
             }
         });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({
