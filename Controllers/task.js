@@ -57,9 +57,16 @@ exports.getOverView = async (req, res) => {
             sql += ' WHERE ' + conditions.join(' AND ');
         }
 
-        const page = parseInt(req.body.page) || 1;  // Default page = 1
-        const limit = parseInt(req.body.limit) || 10; // Default limit = 10
-        const offset = (page - 1) * limit; // Calculate offset
+        // soft ข้อมูล
+        const validSortColumns = ['task_id', 'user_id', 'title', 'status', 'priority', 'due_date']; 
+        const orderBy = validSortColumns.includes(req.body.orderBy) ? req.body.orderBy : 'task_id'; 
+        const sortOrder = req.body.sortOrder === 'DESC' ? 'DESC' : 'ASC';
+
+        sql += ` ORDER BY ${orderBy} ${sortOrder}`; 
+
+        const page = parseInt(req.body.page) || 1;  
+        const limit = parseInt(req.body.limit) || 10; 
+        const offset = (page - 1) * limit; 
 
         sql += ' LIMIT ? OFFSET ?';
         params.push(limit, offset);

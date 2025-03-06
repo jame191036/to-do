@@ -4,8 +4,12 @@ const jwt = require('jsonwebtoken');
 
 exports.getOverView = async (req, res) => {
     try {
-        const { page = 1, limit = 10, username, email } = req.body;
+        const { page = 1, limit = 10, username, email, sortBy = "user_id", sortOrder = "ASC" } = req.body;
         const offset = (page - 1) * limit;
+
+        const validColumns = ["user_id", "username", "email"];
+        const validSortBy = validColumns.includes(sortBy) ? sortBy : "user_id";
+        const validSortOrder = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
 
         // ติดต่อฐานข้อมูล
         const conn = await connectDB();
@@ -15,14 +19,14 @@ exports.getOverView = async (req, res) => {
 
         //ตรวจสอบว่า req มี username ส่งมาไหมถ้าส่งมาให้ push เข้า params
         if (username) {
-            conditions.push('username = ?');
-            params.push(username);
+            conditions.push('username LIKE ?');
+            params.push(`%${username}%`);
         }
 
         //ตรวจสอบว่า req มี email ส่งมาไหมถ้าส่งมาให้ push เข้า params
         if (email) {
-            conditions.push('email = ?');
-            params.push(email);
+            conditions.push('email LIKE ?');
+            params.push(`%${email}%`);
         }
 
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -32,6 +36,7 @@ exports.getOverView = async (req, res) => {
           SELECT user_id, username, email 
           FROM users 
           ${whereClause} 
+          ORDER BY ${validSortBy} ${validSortOrder} 
           LIMIT ? OFFSET ?`;
         params.push(parseInt(limit), parseInt(offset));
 
@@ -39,7 +44,7 @@ exports.getOverView = async (req, res) => {
 
         // Count total records for pagination
         const countSql = `SELECT COUNT(*) as total FROM users ${whereClause}`;
-        const [countResult] = await conn.query(countSql, params.slice(0, -2)); // Exclude limit & offset from count query
+        const [countResult] = await conn.query(countSql, params.slice(0, -2));
 
         // ปิดการติดต่อฐานข้อมูล
         await conn.end();
@@ -231,8 +236,8 @@ exports.updateUser = async (req, res) => {
 
         // query หาข้อมูลว่า user หรือ email นี้มีอยู่ใน DataBase แล้วหรือไม่
         const [existingUser] = await conn.query(
-            'SELECT * FROM users WHERE username = ? OR email = ?',
-            [username, email]
+            'SELECT * FROM users WHERE user_id != ? AND (username = ? OR email = ?);',
+            [id, username, email]
         );
 
         // ถ้ามีแล้วให้แจ้งว่ามีผู้ใช่งาน user หรือ email นี้แล้ว
