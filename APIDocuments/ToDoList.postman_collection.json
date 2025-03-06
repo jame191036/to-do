@@ -35,7 +35,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"page\": 1,\r\n    \"limit\": 20,\r\n    \"username\": null,\r\n    \"email\": null\r\n}",
+							"raw": "{\r\n    \"page\": 1,\r\n    \"limit\": 20,\r\n    \"sortBy\": \"user_id\",\r\n    \"sortOrder\": \"DESC\",\r\n    \"username\": null,\r\n    \"email\": null\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -73,7 +73,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n\t\"username\": \"user16\",\r\n\t\"email\": \"user16@gmail.com\",\r\n\t\"password\": \"1234\"\r\n}",
+							"raw": "{\r\n\t\"username\": \"user21\",\r\n\t\"email\": \"user21@gmail.com\",\r\n\t\"password\": \"1234\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -275,7 +275,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"page\": 1,\r\n    \"limit\": 20,\r\n    \"user_id\": null,\r\n    \"title\": null,\r\n    \"status\": null,\r\n    \"priority\": null,\r\n    \"created_at\": null\r\n}",
+							"raw": "{\r\n    \"page\": 1,\r\n    \"limit\": 20,\r\n    \"orderBy\": \"task_id\",\r\n    \"sortOrder\": \"DESC\",\r\n    \"user_id\": null,\r\n    \"title\": null,\r\n    \"status\": null,\r\n    \"priority\": null,\r\n    \"created_at\": null\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -440,7 +440,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{local}}/api/tasks/deleteTask/17",
+							"raw": "{{local}}/api/tasks/deleteTask/22",
 							"host": [
 								"{{local}}"
 							],
@@ -448,7 +448,7 @@
 								"api",
 								"tasks",
 								"deleteTask",
-								"17"
+								"22"
 							]
 						}
 					},
@@ -476,7 +476,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n\t\"task_id\": 14,\r\n\t\"user_id\": 13,\r\n\t\"comment\": \"รบกวนเพิ่มข้อมูลหน่วยงาน \\\"ไอที\\\" เข้าไปในเอกสารด้วยครับ\"\r\n}",
+							"raw": "{\r\n\t\"task_id\": 19,\r\n\t\"user_id\": 13,\r\n\t\"comment\": \"รบกวนเพิ่มข้อมูลหน่วยงาน \\\"ไอที\\\" เข้าไปในเอกสารด้วยครับ\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -514,7 +514,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"task_id\": 14,\r\n    \"user_id\": 13,\r\n    \"comment\": \"commentss xxxx edit 5556\"\r\n}",
+							"raw": "{\r\n    \"task_id\": 19,\r\n    \"user_id\": 13,\r\n    \"comment\": \"commentss xxxx edit 5556\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -522,7 +522,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{local}}/api/comments/editComment/19",
+							"raw": "{{local}}/api/comments/editComment/29",
 							"host": [
 								"{{local}}"
 							],
@@ -530,7 +530,7 @@
 								"api",
 								"comments",
 								"editComment",
-								"19"
+								"29"
 							]
 						}
 					},
@@ -561,7 +561,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{local}}/api/comments/deleteComment/11",
+							"raw": "{{local}}/api/comments/deleteComment/29",
 							"host": [
 								"{{local}}"
 							],
@@ -569,7 +569,7 @@
 								"api",
 								"comments",
 								"deleteComment",
-								"11"
+								"29"
 							]
 						}
 					},
@@ -602,6 +602,34 @@
 							"path": [
 								"api",
 								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "refreshToken",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"{{vault:json-web-token}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{local}}/api/auth/refresh",
+							"host": [
+								"{{local}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
 							]
 						}
 					},
